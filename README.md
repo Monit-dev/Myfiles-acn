@@ -2,12 +2,12 @@
 -------------------
 Cogniz - 22/22/2023 - Int Ques
 1) What is PR Decoration in SQ?
-	You can also report the pull request analysis and quality gate status directly in your DevOps platform's interface.
-	Pull request analysis shows your pull request's quality gate and analysis in the SonarQube interface
-	You can see your pull requests in SonarQube from the branches and pull requests dropdown menu of your project.
-	In addition to appearing in the SonarCloud interface, the quality gate status and a summary of the results also appear in your DevOps platform 
-	interface (that is, in the pull request view of GitHub, Bitbucket Cloud, Azure DevOps or GitLab). 
-	This is referred to as pull request decoration.
+You can also report the pull request analysis and quality gate status directly in your DevOps platform's interface.
+Pull request analysis shows your pull request's quality gate and analysis in the SonarQube interface
+You can see your pull requests in SonarQube from the branches and pull requests dropdown menu of your project.
+In addition to appearing in the SonarCloud interface, the quality gate status and a summary of the results also appear in your DevOps platform 
+interface (that is, in the pull request view of GitHub, Bitbucket Cloud, Azure DevOps or GitLab). 
+This is referred to as pull request decoration.
 
 2) What is HPA in GKE?
 	The Horizontal Pod Autoscaler changes the shape of your Kubernetes workload by automatically increasing or decreasing 
