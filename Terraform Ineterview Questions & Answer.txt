@@ -1,0 +1,119 @@
+Q) What are the resourses you have created using terraform?
+	Vnet, NSG, VMs, Subnet, AKS, ACR, Storages.
+	
+Q) How to do changes in the configurations of already created resources in Terraform?
+- Using terraform import
+
+Q) What is statefile and what do you do with it?
+Terraform maintains the state file which maps the current infrastucture with the configuration.
+Usually it is created locally but can be stored in Azure Blobs-> containers, S3 in AWS and we can also store it in terraform cloud.
+
+Q) What if the statefile gets deleted?
+- Generally we dont want to loose the state file because it maps the current provisioned infra with the configuration file.
+  If the state file gets deleted and if we rerun the terraform apply again it will create a new set of infra for you with the existing one.
+  The best way is to do terraform import targetting the resourse to recreate the state file if it gets deleted.
+  
+Q) What are the main features of terraform?
+- Can be used for multiple cloud provider, SaaS.
+- It uses HCL which is human readable.
+- Terraform statefile helps you to track resource changes throughout the deployment
+- You may also commit your code to SCM tools to safely collaborate on infra.
+
+Q) What Terraform Validate?
+-  The validate command in Terraform is used to verify the correctness of Terraform configuration files. It checks the syntax of the Terraform files, 
+   ensures the correct usage of attributes and values, and validates the configuration based on the core syntax of Terraform and also by checking all 
+   the providers in the code.
+
+Q) Terraform lifecycle?
+- Lifecycle arguments help control the flow of your Terraform operations by creating custom rules for resource creation and destruction.
+  lifecycle arguments help minimize potential downtime based on your resource needs as well as protect specific resources from changing or impacting infrastructure.
+  The arguments available within a lifecycle block are create_before_destroy, prevent_destroy, ignore_changes, and replace_triggered_by.
+
+Q) How to destroy a specific resource if there are multiple resources running?
+- terraform destroy -target-resourcetype.resourcename.
+
+Q) Lets say if your state file gets deleted from storage account, what will happen if we plan and apply?
+- It will duplicate the resources, because terraform will think that its a fresh configuration file.
+- Generally its best practices to have redundancy enabled for your storage account.
+
+Q) What are the different types of modules?
+-  There are primarily two types of modules depending on how they are written (root and child modules), 
+   and depending if they are published or not, we identify two different types as well (local and published).
+   
+Q) What is remote backend?
+-  A remote backend is a type of Terraform backend that stores the state file in a remote location, such as a cloud object storage service or a database. Remote 
+   backends provide several benefits, such as enabling collaboration between team members, versioning state files, and providing a history of changes.
+   
+Q) How do we provide the variable at the runtime?
+	The variable value should not be there in your variables.tf file.
+	or explicitly define the variables at terraform apply -var "email=xyz.gmail.com"
+	
+Q) Lets say we have multiple envs, so is there a way to manage those terraform code into multiple envs?
+- Use workspaces for each envs which will have identical statefiles.
+
+Q) Why do we call terraform as IAC?
+- Terraform is an Infrastructure as Code (IaC) tool that allows engineers to define their software infrastructure in code.
+
+Q) Some drawback of terraform?
+Q) What version of terraform you are using?
+- 1.7.1
+
+Q) What are modules in terraform?
+ - Its a logical grouping of resources.
+ 
+Q) What is terraform beckend?
+- its just the place were your terraform statefile is stored.
+
+Q) How do you handle secrets in terraform?
+-  Store secrets in remote secret manager like azure keyvault, and create a proper IAM role for the remote beckends.
+
+Q) What is resource graph in terraform?
+- The terraform graph command produces descriptions of the relationships between objects in a Terraform configuration, using the DOT language.
+
+Q) What is state locking?
+-  Terraform state locking is a mechanism that prevents concurrent access to the same Terraform state file from multiple users or automation processes. 
+   In other words, it ensures that only one user or process can make changes to the state at a given time.
+   
+Q) What is a tainted terraform resource?
+-  Terraform taint marks a resource as degraded or damaged, 
+   indicating that this resource will be destroyed and recreated during the next apply operation.
+   
+Q) What is terraform state rollback?
+Q) Explain core terraform e2e workflow to deploy and delete the resources?
+-  write-> init -> plan --> apply --> destroy.
+
+Q) You have an existing resource created by terraform in cloud, now one particular resource needs to be recreated whenever we do next apply?
+-  Terraform taint command informs terraform that a particular object
+   has become degraded or damaged and needed to be replaced in next apply.
+   Do the below:
+   terraform state list
+   terraform taint "resource_name" {**check the status in .tfstate file if the resouce is tainted if you run the command}
+   terraform apply.
+   ** Terraform taint command in deprecated use -replace option with terraform apply
+   terraform apply -replace="resource_name"
+
+Q) Explain stepby step process to secure .tfstate file and making it readily available for the other developer within the team?
+-  There are multiple ways to store the statefile in beckend, S3, azurerm(storage/container), terraform cloud, etc.
+- First you need to create a backend block within terraform block.
+- terraform {
+  backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "abcd1234"                      # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "tfstate"                       # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "prod.terraform.tfstate"        # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    use_azuread_auth     = true                            # Can also be set via `ARM_USE_AZUREAD` environment variable.
+  }
+}
+- Always use Azure AD Service Principal or User Assigned Managed Identity via OIDC (Workload Identity Federation)
+
+Q) Explain the various types of META-Argument in terraform and their benefits?
+-  Meta-arguments changes the default behaviours of Terraform Configurration.
+    There are five types of META-Argument:
+	depends_on: 
+	count: 
+	for_each :
+	provider : 
+	lifecyle : 
+
+Q) Who creates the "terraform.tfstate.backup" file and under which scenario it is created?
+-  When you run terraform destroy, a backup of statefile is automatically created.

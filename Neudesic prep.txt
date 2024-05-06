@@ -1,0 +1,257 @@
+AKS Management and Microservice CI/CD experience (~2 Years Hands-on Experience)
+	Work as AKS Administrator, and support AKS infrastructure, ensuring it is a secure, resilient, high-performance PaaS platform
+	https://www.the-aks-checklist.com/
+	
+	How to configure and deploy workloads to securely run in AKS cluster using Azure Devops and helm?
+	https://www.coachdevops.com/2023/04/how-to-deploy-springboot-microservices.html
+	https://www.youtube.com/watch?v=TSufDgRBfdg
+	
+	Manage and support Azure DevOps build and release pipeline, set up new repos, and integrate CI/CD into the development life cycle.
+	https://www.youtube.com/watch?v=TSufDgRBfdg
+	
+	AKS Administration and Debugging Skills
+	Look at the following - 
+	Aks Cluster Upgrade:
+	1) Inform the scrum master that a new version of K8s is available for upgrade.
+	2) Plan you cluster upgrade for Non-prod Env informing them about the upgrades and downtime. Usually done in non-business hours.
+	3) Before any upgrade check if any HPA is running for a pod, if it is running disable it for the upgrade.
+	4) steps to upgrade a K8s cluster.
+		a) from the azurecli, view the current version
+		   az aks show -g <resource group name> -n <AKS cluster name>| grep -E "orchestratorVersion|kubernetesVersion"
+		b) check the available upgrade version
+		   az aks get-upgrades --resource-group <RG name> --name <Cluster name> --output table
+		c) Setup pod disruption budget for the pods which are critical and maxnode surge(will create a extra node and evict node as per the maxsurge defined lets say you have 5 node than it will drain only two first and 4 running)
+			** Please make sure there is no Pod Disruption Budget (PDB) that would be potentially blocking AKS cluster upgrade process. 
+			Essentially, “maxUnavailable” and “minAvailable” would need to be set according to your workload. For example, if you have only 1 Pod hosting the application, 
+			the option is either not set a PDB or set “maxUnavailable” at “1” and plan the application down time with the application team.
+		d) upgrade the cluster using az cli:
+			az aks upgrade \
+			--resource-group <RG name> \
+			--name <AKS cluster name> \
+			--kubernetes-version <target K8s version>
+			This option will ask two questions: are you sure you want to update the cluster? (y/n)? 
+			AND 
+			Since you have not defined argument control-plane-only, this will upgrade both CP and node, to version 1.2x.x. (y/N)
+		e)  Look at the AKS cluster there is already one node created with latest version and drain node as defined in maxsurge. Atlast the newly created node will be deleted.
+		f)	Optionally if you choose only control plane for the upgrade in previous option, Check AKS Node Image Version
+			az aks nodepool show \
+			 --resource-group <RG name> \
+			 --cluster-name <AKS cluster name> \
+			 --name <target node pool name> \
+			 --query nodeImageVersion
+		g) parallelly you can also check the event of the cluster upgrade.
+			kubectl get events.
+			
+	NODE-CLUSTER AUTOSCALER
+		To enable cluster autoscaler on a new cluster.
+		The following example command creates a cluster with a single node backed by a virtual machine scale set, enables the cluster autoscaler, 
+		sets a minimum of one and maximum of three nodes:
+		az aks create --resource-group myResourceGroup --name myAKSCluster --node-count 1 --vm-set-type VirtualMachineScaleSets \
+		--load-balancer-sku standard --enable-cluster-autoscaler --min-count 1 --max-count 3
+		
+		To enable cluster autoscaler on an existing cluster. 
+		az aks update --resource-group myResourceGroup --name myAKSCluster --enable-cluster-autoscaler --min-count 1 --max-count 3
+		
+		To Disable the cluster autoscaler on a cluster
+		az aks update --resource-group myResourceGroup --name myAKSCluster --disable-cluster-autoscaler
+		
+		Use the cluster autoscaler on multiple node pools:
+		az aks nodepool update --resource-group myResourceGroup --cluster-name myAKSCluster --name nodepool1 \
+		--update-cluster-autoscaler --min-count 1 --max-count 5
+
+	Crashloopbackoff : https://komodor.com/learn/how-to-fix-crashloopbackoff-kubernetes-error/
+		1) Resource Overload or Insufficient Memory: Could be related to resource limit or limit or quota. 
+		2) Errors When Deploying Kubernetes: A best practice for fixing this error is ensuring you have the 
+											latest Docker version and the most stable versions of other plugins.
+		3) DNS Error: 
+		4) Missing Dependencies: The CrashLoopBackOff status can activate when Kubernetes cannot locate runtime dependencies 
+								(i.e., the var, run, secrets, kubernetes.io, or service account files are missing). 
+		5) Changes Caused by Recent Updates: 
+		6) Container Failure due to Port Conflict: 
+		
+	How to Troubleshoot CrashLoopBackOff:
+		1) Check for “Back Off Restarting Failed Container”: Run kubectl describe pod [name].
+
+		If you get a Liveness probe failed and Back-off restarting failed container messages from the kubelet, 
+		this indicates the container is not responding and is in the process of restarting. If you get the back-off restarting failed container message 
+		this means that you are dealing with a temporary resource overload, as a result of an activity spike. 
+		The solution is to adjust periodSeconds or timeoutSeconds to give the application a longer window of time to respond.
+		
+		2) 
+	Imagepullbackoff: https://komodor.com/learn/how-to-fix-errimagepull-and-imagepullbackoff/
+	
+					CAUSE															RESOLUTION
+		Pod specification provides the wrong repository name			Edit pod specification and provide the correct registry
+		Pod specification provides wrong or unqualified image name		Edit pod specification and provide the correct image name
+		Pod specification provides an invalid tag, or no tag			Edit pod specification and provide the correct tag. If the image does not have a latest tag, you must provide a valid tag
+		Container registry is not accessible							Restore network connection and allow the pod to retry pulling the image
+		The pod does not have permission to access the image			Add a Secret with the appropriate credentials and reference it in the pod specification
+	
+	Resource quota and limit related issue : The resource quota is the total available resources for a particular namespace, 
+											 while limit range is used to assign limits for containers running inside the namespace.
+											 
+	Invalid image name : The status ImagePullBackOff means that a container could not start because Kubernetes could not pull a container image
+						(for reasons such as invalid image name, or pulling from a private registry without imagePullSecret).
+						
+	Errimagepull : https://komodor.com/learn/how-to-fix-errimagepull-and-imagepullbackoff/
+	describe : kubectl describe pod <podname>
+	logs : kubectl get logs pod <podname>
+	event: We generally use it when we do a cluster upgrade or deploying a new resource.
+			kubectl get event
+	ingress:
+		An API object that manages external access to the services in a cluster, typically HTTP.
+		Ingress may provide load balancing, SSL termination and name-based virtual hosting.
+		Ingress exposes HTTP and HTTPS routes from outside the cluster to services within the cluster. 
+		Traffic routing is controlled by rules defined on the Ingress resource.
+		
+	Livenessprobe and readinessprobe and startup probe:
+	The livenessProbe serves as a diagnostic check to confirm if the container is alive. 
+	On the other hand, readinessProbe ensures that the container is healthy to serve incoming traffic.
+	The kubelet uses startup probes to know when a container application has started. If such a probe is configured,
+	liveness and readiness probes do not start until it succeeds, making sure those probes don't interfere with the application startup.
+	
+	Create a AKS cluster with a specific VPC
+	Rolebinding and clusterrole binding
+		Role bindings exist in namespaces to service accounts. Role bindings can link cluster roles, 
+		but they only grant access to the namespace of the role binding.
+		Cluster role bindings link accounts to cluster roles and grant access across all resources.
+	CRD's
+	Cluster Security
+	AKS cluster BackUp: https://www.youtube.com/watch?v=5ilq21t0-c8
+	Cluster ports to be enabled
+	Deployment strategy
+	Services
+	HPA and VPA
+	Integration with Azure Monitor/prometheus & grafana
+	
+	
+	Hands-on experience in CI/CD for Microservice using Azure devops and Helm and 
+	ServiceMesh, 
+	https://www.coachdevops.com/2023/04/how-to-deploy-springboot-microservices.html
+	https://www.youtube.com/watch?v=TSufDgRBfdg
+	
+	Prometheus & Grafana deployment and configuration
+	
+	
+Good in Azure DevOps Yaml Pipeline, Pipeline templates (~2 Years Hands-on Experience)
+	Strong in Git/github, Release management, Branching strategy, PR activities
+	Strong in Terraform automation and Deployments using Azure DevOps - ~2 Years Hands-on Experience)
+	https://www.youtube.com/watch?v=kP9UV4vJGro&pp=ygU9VGVycmFmb3JtIGluZnJhIGF1dG9tYXRpb24gYW5kIERlcGxveW1lbnRzIHVzaW5nIEF6dXJlIERldk9wcw%3D%3D
+	
+	Terraform : 
+	Azure Devops:
+	
+Azure Infra resources(~4 Years Hands-on Experience)-
+- Azure Landing Zone design and implementation, 
+  Azure landing zones are essential for setting up a well-structured and secure cloud environment in Microsoft Azure.
+  Let’s dive into the key design areas and principles for implementing an effective Azure landing zone:
+  1) Environment Design Areas: 
+	 ------------------------
+		-Azure Billing and Active Directory Tenant: Properly creating and setting up your Azure tenant and billing are crucial initial steps.
+		-Identity and Access Management (IAM): IAM serves as a primary security boundary in the public cloud. It’s essential for establishing secure 
+											  and compliant architectures.
+		-Network Topology and Connectivity: Decisions related to networking and connectivity are foundational aspects of any cloud architecture.
+		-Resource Organization: As your cloud adoption scales, consider subscription design and management group hierarchy. 
+							   These decisions impact governance, operations management, and adoption patterns.
+	
+	2) Compliance Design Areas:
+		-----------------------
+		-Security: Implement controls and processes to protect your cloud environments.
+		-Management: Establish a management baseline for ongoing operations, visibility, compliance, and protection.
+		-Governance: Automate auditing and enforcement of governance policies
+	A azure landing zone can be implemented using the ALZ terraform template.
+		https://learn.microsoft.com/en-us/azure/architecture/landing-zones/terraform/landing-zone-terraform
+			
+	VM: A virtual machine is a computer file, typically called an image, that behaves like an actual computer. 
+		It can run in a window as a separate computing environment, often to run a different operating system—or even to function as the 
+		user's entire computer experience—as is common on many people's work computers. 
+	
+	VMAS: By placing VMs in an availability set, you achieve high availability for your application. 
+		If one VM fails or requires maintenance, the others continue to operate.
+		For critical workloads, consider using availability zones (a more advanced feature) instead of availability sets. 
+		Availability zones provide even greater redundancy by distributing VMs across physically separate datacenters within a region.
+		Group of two or more VM in an availabilityset to ensure that at least one of them is available during planned or unplanned maintenance events.
+		Fault Domains:
+		An availability set ensures that VM instances are distributed across different fault domains. 
+		Each fault domain represents a group of servers that share common power and network resources.
+		By spreading VMs across fault domains, you reduce the risk of a single point of failure. 
+		If one fault domain experiences an issue (e.g., hardware failure), the VMs in other fault domains remain unaffected.
+		Update Domains:
+		Availability sets also consider update domains. 
+		An update domain represents a group of VMs that can be updated or rebooted together during planned maintenance.
+		When Azure performs maintenance (such as applying security patches), it does so one update domain at a time. 
+		This ensures that not all VMs are affected simultaneously.
+	
+	What's the difference between availability sets and availability zones?
+	Availability Sets:
+		Purpose: Availability sets are designed to enhance the reliability and availability of virtual machines (VMs) within a single Azure datacenter.
+		Fault Domains: VMs in an availability set are distributed across different fault domains. 
+						Each fault domain represents a group of servers that share common power and network resources.
+		Update Domains: Availability sets also consider update domains. During planned maintenance, Azure updates or reboots 
+						VMs one update domain at a time.
+		High Availability: By placing VMs in an availability set, you reduce the risk of a single point of failure. 
+						   If one VM fails or requires maintenance, others continue to operate.
+		Use Cases: Availability sets are commonly used for multi-tier applications (e.g., web servers, application servers, databases) 
+					where different VMs serve different roles.
+	Availability Zones:
+		Purpose: Availability zones provide even greater redundancy by distributing VMs across physically separate datacenters within a region.
+		Geographic Isolation: Each availability zone is a separate datacenter with independent power, cooling, and networking. 
+							  They are isolated from each other.
+		High Availability: VMs deployed across availability zones achieve higher availability than those in availability sets.
+		Use Cases: Use availability zones for critical workloads that require maximum uptime and disaster recovery capabilities.
+			
+	VMSS:  Azure Virtual Machine Scale Sets (VMSS) allow you to create and manage a group of load-balanced virtual machines (VMs).
+			VMSS automatically adjusts the number of VM instances based on demand or a defined schedule.
+			You can scale up (add more VMs) or scale down (remove VMs) as needed.
+			All VM instances in a scale set are identical.
+			They are created from the same base OS image and configuration.
+			VMSS supports load balancing using the Azure load balancer (for basic layer-4 traffic distribution) or the Azure Application Gateway 
+			(for advanced layer-7 traffic distribution and TLS termination).
+			VMSS ensures high availability by distributing VMs across fault domains.
+				
+	Azure Functions: 
+	Azure Functions is a serverless solution provided by Microsoft Azure that allows you to write less code, maintain less infrastructure, and save on costs.
+	Azure Functions provides a comprehensive set of event-driven triggers and bindings.
+	Triggers allow your functions to respond to events (e.g., file uploads, database changes, timers).
+	Bindings connect your functions to other services (e.g., blob storage, queues, databases) without requiring extra code.
+
+	IAM, 
+	AKS cluster Management, 
+	Storage Account, 
+	Key Vault, 
+	Azure Front door:
+	Azure Front Door is a modern cloud Content Delivery Network (CDN) that provides fast, 
+	reliable, and secure access between your users and your applications’ static and dynamic web content across the globe.
+	Azure Front Door integrates seamlessly with other Azure services, such as DNS, Web Apps, and Storage, for domain and origin management.
+	It offers platform-level protection against network-level Distributed Denial of Service (DDoS) attacks.
+	Azure Front Door is ideal for:
+		Content Delivery: Delivering static and dynamic content efficiently to users globally.
+		Application Acceleration: Improving performance for web applications.
+		Security Enhancement: Protecting against known and new threats using a Zero Trust framework.
+	Application Gateway and Load Balancer:
+		Azure Application Gateway:
+			Layer 7 Load Balancer: Azure Application Gateway operates at layer seven of the OSI model, 
+			which means it can make routing decisions based on additional attributes of an HTTP request, such as URI path or host headers.
+			URL-Based Routing: It directs traffic to multiple backend services based on parameters like URL path or HTTP header.
+			Use Cases: Application Gateway is ideal for managing and routing HTTP/HTTPS traffic within the Azure ecosystem. 
+			It provides an elevated level of control and flexibility.
+		Azure Load Balancer:
+			Layer 4 Load Balancer: Azure Load Balancer operates at layer four of the OSI model (transport layer) and distributes 
+			incoming traffic across multiple backend services based on source IP address and port.
+			Transport Layer Routing: It routes traffic based on source IP and port to a destination IP and port.
+			Use Cases: Azure Load Balancer is suitable for distributing traffic to backend services without considering specific HTTP attributes. 
+			It ensures high availability, scalability, and security of web applications
+		Application Gateway focuses on HTTP/HTTPS traffic and provides advanced routing capabilities.
+		Load Balancer is more generic and works at the transport layer, distributing traffic based on IP and port.
+	Logging, 
+	Metrics, 
+	Azure Security, 
+	Azure AD, 
+	**azure event Hub** 
+	DNS
+	VPC
+	Routes
+	RBAC and Policy
+	Subnets
+	NSG
+	
